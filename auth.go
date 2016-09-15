@@ -116,7 +116,7 @@ func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles ma
 // Login logs a user in. They will be redirected to dest or to the last
 // location an authorization redirect was triggered (if found) on success. A
 // message will be added to the session on failure with the reason.
-func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
+func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string, rds bool) error {
 	session, _ := a.cookiejar.Get(req, "auth")
 	if session.Values["username"] == u {
 		return mkerror("already authenticated")
@@ -134,9 +134,11 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 	session.Values["username"] = u
 	session.Save(req, rw)
 
-	redirectSession, _ := a.cookiejar.Get(req, "redirects")
-	if flashes := redirectSession.Flashes(); len(flashes) > 0 {
-		dest = flashes[0].(string)
+	if rds {
+		redirectSession, _ := a.cookiejar.Get(req, "redirects")
+		if flashes := redirectSession.Flashes(); len(flashes) > 0 {
+			dest = flashes[0].(string)
+		}
 	}
 	http.Redirect(rw, req, dest, http.StatusSeeOther)
 	return nil
